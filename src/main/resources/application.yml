@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: application-service
+    config:
+      import: "optional:configserver:http://localhost:8088"
+    id: application-service # Adding a unique identifier for the API
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: kamdem.guy@institutsaintjean.org
+    password: osurrusawvgooxam
+    properties:
+      mail.smtp.ssl.trust: smtp.gmail.com
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 3000
+      mail.smtp.writetimeout: 5000
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/candidate_applicationDB?createDatabaseIfNotExist=true&maxAllowedPacket=16777216
+    username: root
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  cloud:
+    loadbalancer:
+      enabled: true
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+server:
+  port: 8082
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
