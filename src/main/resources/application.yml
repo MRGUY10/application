@@ -18,9 +18,10 @@ spring:
       mail.smtp.writetimeout: 5000
 
   datasource:
-    url: jdbc:mysql://bkdypdloyy6geco1ozak-mysql.services.clever-cloud.com:3306/bvgdhhubuvp2kge6ollv
-    username: unmt5qp26euo0ios
-    password: GOOpkAvHknWI1Vu5qjFj
+    url: jdbc:mysql://bi9vtsduv4xwtvolexl9-mysql.services.clever-cloud.com:3306/bi9vtsduv4xwtvolexl9?createDatabaseIfNotExist=true
+    username: ugjnowpw0ykf96mt
+    password: fEtV2YFx0FEWab0spfcN
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
