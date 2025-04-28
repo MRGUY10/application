@@ -50,7 +50,7 @@ public class ApplicationService {
 
     @Transactional
     public Application saveCompleteApplication(ApplicationRequest request, List<MultipartFile> documentFiles) {
-        // Create and save the main application
+        // 1. Create and save the main application
         Application application = new Application();
         application.setMatricule(request.getMatricule());
         application.setFirstName(request.getFirstName());
@@ -65,26 +65,37 @@ public class ApplicationService {
         application.setProgram(request.getProgram());
         application.setStatus(ApplicationStatus.SUBMITTED);
 
-        // Set and save family details
+        // 2. Set and save family details
         FamilyDetails familyDetails = request.getFamilyDetails();
         familyDetails.setApplication(application);
         application.setFamilyDetails(familyDetails);
 
-        // Set and save education details
+        // 3. Set and save education details
         EducationDetails educationDetails = request.getEducationDetails();
         educationDetails.setApplication(application);
         application.setEducationDetails(educationDetails);
 
-        // Save the application (cascade will save family and education details)
+        // 4. Save the application first (cascade saves family and education)
         Application savedApplication = applicationRepository.save(application);
 
-        // Process and save documents if provided
+        // 5. Process and save documents if provided
         if (documentFiles != null && !documentFiles.isEmpty()) {
             List<Document> documents = new ArrayList<>();
-            for (MultipartFile file : documentFiles) {
+
+            // Expected document types (in exact order or by filenames or external mapping)
+            List<DocumentType> expectedDocumentTypes = Arrays.asList(DocumentType.values());
+
+            if (documentFiles.size() != expectedDocumentTypes.size()) {
+                throw new RuntimeException("You must upload all required documents (" + expectedDocumentTypes.size() + " files).");
+            }
+
+            for (int i = 0; i < documentFiles.size(); i++) {
+                MultipartFile file = documentFiles.get(i);
+                DocumentType documentType = expectedDocumentTypes.get(i); // Match by index
+
                 try {
                     Document document = new Document();
-                    document.setDocumentType(file.getOriginalFilename().contains("id") ? "ID_CARD" : "OTHER");
+                    document.setDocumentType(documentType.name());
                     document.setDocumentContent(file.getBytes());
                     document.setApplication(savedApplication);
                     documents.add(document);
@@ -92,6 +103,7 @@ public class ApplicationService {
                     throw new RuntimeException("Failed to process document: " + file.getOriginalFilename(), e);
                 }
             }
+
             documentRepository.saveAll(documents);
             savedApplication.setDocuments(documents);
         }
@@ -155,8 +167,12 @@ public class ApplicationService {
         application.setStatus(ApplicationStatus.SUBMITTED);
         application.setSubmissionDate(LocalDateTime.now());
 
+        // Send notification email for SUBMITTED status
+        sendStatusEmail(application, ApplicationStatus.SUBMITTED);
+
         return applicationRepository.save(application);
     }
+
 
     // Step 5: Update Application Status
     public Application updateApplicationStatus(Long applicationId, ApplicationStatus status) {

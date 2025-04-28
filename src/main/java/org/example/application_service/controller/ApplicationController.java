@@ -45,6 +45,7 @@ public class ApplicationController {
         }
     }
 
+
     // Step 1: Initialize Application
     @PostMapping("/init")
     public ResponseEntity<?> initializeApplication(@RequestBody Application application) {
