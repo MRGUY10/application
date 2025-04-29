@@ -25,15 +25,19 @@ public class Application {
     // Personal details fields directly
     @Column(nullable = false)
     private String matricule;
-
+    @Column(unique = true)
     private String firstName;
+    @Column(unique = true)
     private String lastName;
     private String nationality;
     private String regionOfOrigin;
     private String address;
+    @Column(unique = true)
     private String whatsappNumber;
+    @Column(unique = true)
     private String email;
     private LocalDate dateOfBirth;
+    @Column(unique = true)
     private String phoneNumber;
 
     @Enumerated(EnumType.STRING)

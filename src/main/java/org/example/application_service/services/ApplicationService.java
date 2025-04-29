@@ -31,7 +31,7 @@ public class ApplicationService {
     @Autowired
     private RestTemplate restTemplate;
 
-    private String authServiceUrl = "http://20.11.21.61:8087";
+    private String authServiceUrl = "https://candidate-service.onrender.com";
 
     @Autowired
     private EducationDetailsRepository educationDetailsRepository;
@@ -48,11 +48,17 @@ public class ApplicationService {
         this.documentRepository = documentRepository;
     }
 
-    @Transactional
     public Application saveCompleteApplication(ApplicationRequest request, List<MultipartFile> documentFiles) {
         // 1. Create and save the main application
         Application application = new Application();
-        application.setMatricule(request.getMatricule());
+
+        // Check if matricule is null and generate it if necessary
+        if (request.getMatricule() == null) {
+            application.setMatricule(generateMatricule(application));
+        } else {
+            application.setMatricule(request.getMatricule());
+        }
+
         application.setFirstName(request.getFirstName());
         application.setLastName(request.getLastName());
         application.setNationality(request.getNationality());
@@ -111,6 +117,13 @@ public class ApplicationService {
         return savedApplication;
     }
 
+    private String generateMatricule(Application application) {
+        String programCode = getProgramCode(application.getProgram());
+        String uniqueNumber = String.format("%04d", application.getId());
+        String year = String.valueOf(java.time.Year.now().getValue());
+
+        return year + programCode + uniqueNumber;
+    }
 
     // Step 1: Initialize application
     public Application initializeApplication(Application application) {
@@ -192,14 +205,7 @@ public class ApplicationService {
 
             String newMatricule = year + programCode + uniqueNumber;
 
-            String oldMatricule = application.getMatricule();
             application.setMatricule(newMatricule);
-
-            if (oldMatricule != null) {
-                updateAuthServiceWithMatricule(oldMatricule, newMatricule);
-            } else {
-                registerNewMatriculeInAuthService(newMatricule);
-            }
         }
 
         applicationRepository.save(application);
@@ -208,6 +214,7 @@ public class ApplicationService {
 
         return application;
     }
+
 
     private void sendStatusEmail(Application application, ApplicationStatus status) {
         String candidateEmail = application.getEmail();
@@ -290,28 +297,30 @@ public class ApplicationService {
 
         // Using URI template with path variable and request param
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(url)
-                .queryParam("newMatricule", newMatricule);
+                .uriVariables(Collections.singletonMap("oldMatricule", oldMatricule));
+
+        // Create the request body (can be empty or contain any necessary data, e.g., for authentication)
+        HttpEntity<String> entity = new HttpEntity<>(null);
 
         try {
-            // Make the PUT request with null body (since we're using query parameters)
-            ResponseEntity<String> response = restTemplate.exchange(
-                    builder.buildAndExpand(oldMatricule).toUri(),
-                    HttpMethod.PUT,
-                    null,  // No request body needed
-                    String.class
-            );
-
-            // Verify successful response
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                throw new RuntimeException("Auth service returned status: " + response.getStatusCode());
-            }
-
+            // Attempt to update the auth service
+            restTemplate.exchange(builder.toUriString(), HttpMethod.PUT, entity, String.class);
+            // If successful, no action needed after the update
         } catch (HttpServerErrorException e) {
-            throw new RuntimeException("Auth service error: " + e.getResponseBodyAsString(), e);
+            // Handle any errors from the server but do not stop the matricule update
+            // Log the error or send a fallback message
+            System.err.println("Error occurred while updating matricule: " + e.getMessage());
+            // You can choose to log the error, or silently ignore if that's required behavior.
         } catch (RestClientException e) {
-            throw new RuntimeException("Failed to communicate with auth service: " + e.getMessage(), e);
+            // Catch other exceptions like connection issues and log them, but still proceed
+            System.err.println("Error communicating with the auth service: " + e.getMessage());
         }
+
+        // Proceed to register the new matricule even if the old one couldn't be updated
+        registerNewMatriculeInAuthService(newMatricule);
     }
+
+
 
 
 
@@ -384,11 +393,9 @@ public class ApplicationService {
     // Fetch application by matricule
     public Application getApplicationByMatricule(String matricule) {
         Optional<Application> application = applicationRepository.findByMatricule(matricule);
-        if (application.isPresent()) {
-            return application.get();
-        } else {
-            throw new RuntimeException("Application not found for matricule: " + matricule);
-        }
+
+        // Return the application if found, or null if not found
+        return application.orElse(null);
     }
     public List<Application> getAllApplications() {
         return applicationRepository.findAll();
@@ -406,5 +413,6 @@ public class ApplicationService {
         return applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
     }
+
 
 }

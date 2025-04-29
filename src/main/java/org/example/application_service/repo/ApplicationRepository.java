@@ -13,4 +13,5 @@ import java.util.Optional;
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     Optional<Application> findByMatriculeAndProgram(String matricule, Program program);
     Optional<Application> findByMatricule(String matricule);
+
 }

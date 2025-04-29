@@ -103,9 +103,13 @@ public class ApplicationController {
         return applicationService.addDocuments(applicationId, files, documentTypes);
     }
     @GetMapping("/matricule/{matricule}")
-    public ResponseEntity<Application> getApplicationByMatricule(@PathVariable String matricule) {
+    public ResponseEntity<Application>  getApplicationByMatricule(@PathVariable String matricule) {
         Application application = applicationService.getApplicationByMatricule(matricule);
-        return ResponseEntity.ok(application);
+        if (application != null) {
+            return ResponseEntity.ok(application);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
     @GetMapping("/all")
     public ResponseEntity<List<Application>> getAllApplications() {
